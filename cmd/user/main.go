@@ -2,6 +2,7 @@ package main
 
 import (
 	"ecomUser/internal/config"
+	"ecomUser/internal/storage/postgres"
 	"log/slog"
 	"os"
 )
@@ -19,6 +20,14 @@ func main() {
 
 	log.Info("starting url-shortener")
 	log.Debug("debug messages are enabled")
+
+	storagePath := postgres.SplitStoragePath(cfg.LoginDB, cfg.PasswordDB, cfg.HostDB, cfg.PortDB, cfg.NameDB)
+
+	storage, err := postgres.New(storagePath)
+	if err != nil {
+		log.Error("Failed to connect to storage: %v", "err", err)
+	}
+	defer storage.Close()
 
 }
 
