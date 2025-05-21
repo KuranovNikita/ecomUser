@@ -45,18 +45,18 @@ func (s *Storage) Close() error {
 	return nil
 }
 
-func (s *Storage) SaveUser(ctx context.Context, user *models.User) (int64, error) {
+func (s *Storage) SaveUser(ctx context.Context, email string, login string, passHash []byte) (int64, error) {
 	const op = "storage.postgres.SaveUser"
 
 	stmt := `INSERT INTO users(email, login, pass_hash) VALUES($1, $2, $3) RETURNING id`
 
 	var id int64
-	err := s.db.QueryRowContext(ctx, stmt, user.Email, user.Login, user.PassHash).Scan(&id)
+	err := s.db.QueryRowContext(ctx, stmt, email, login, passHash).Scan(&id)
 	if err != nil {
 		var pgErr *pq.Error
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == "23505" {
-				return 0, fmt.Errorf("%s: %w (email: %s)", op, ErrUserExists, user.Email)
+				return 0, fmt.Errorf("%s: %w (email: %s)", op, ErrUserExists, email)
 			}
 		}
 		return 0, fmt.Errorf("%s: execute statement: %w", op, err)
@@ -65,21 +65,21 @@ func (s *Storage) SaveUser(ctx context.Context, user *models.User) (int64, error
 	return id, nil
 }
 
-func (s *Storage) GetUser(ctx context.Context, email string) (*models.User, error) {
+func (s *Storage) GetUser(ctx context.Context, login string) (models.User, error) {
 	const op = "storage.GetUser"
 
 	stmt := `SELECT id, email, login, pass_hash FROM users WHERE email = $1`
 
 	var user models.User
-	err := s.db.QueryRowContext(ctx, stmt, email).Scan(&user.ID, &user.Email, &user.Login, &user.PassHash)
+	err := s.db.QueryRowContext(ctx, stmt, login).Scan(&user.ID, &user.Email, &user.Login, &user.PassHash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%s: %w (email: %s)", op, ErrUserNotFound, email)
+			return models.User{}, fmt.Errorf("%s: %w (login: %s)", op, ErrUserNotFound, login)
 		}
-		return nil, fmt.Errorf("%s: execute statement or scan: %w", op, err)
+		return models.User{}, fmt.Errorf("%s: execute statement or scan: %w", op, err)
 	}
 
-	return &user, nil
+	return user, nil
 }
 
 func SplitStoragePath(login, password, host, port, dbName string) string {
