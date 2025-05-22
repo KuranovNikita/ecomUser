@@ -13,18 +13,10 @@ import (
 )
 
 type UserAuth interface {
-	Login(
-		ctx context.Context,
-		login string,
-		password string,
-	) (token string, err error)
-	RegisterNewUser(
-		ctx context.Context,
-		email string,
-		login string,
-		password string,
-	) (userID int64, err error)
+	Login(ctx context.Context, userID int64, password string) (token string, err error)
+	SaveUser(ctx context.Context, email string, login string, password string) (int64, error)
 	GetUser(ctx context.Context, userID int64) (models.User, error)
+	GetUserLogin(ctx context.Context, login string) (models.User, error)
 }
 
 type serverAPI struct {
@@ -48,7 +40,9 @@ func (s *serverAPI) Login(
 		return nil, status.Error(codes.InvalidArgument, "password is required")
 	}
 
-	token, err := s.userAuth.Login(ctx, in.GetLogin(), in.GetPassword())
+	user, err := s.userAuth.GetUserLogin(ctx, in.Login)
+
+	token, err := s.userAuth.Login(ctx, user.ID, in.GetPassword())
 	if err != nil {
 
 		return nil, status.Error(codes.Internal, "failed to login")
@@ -69,7 +63,7 @@ func (s *serverAPI) Register(
 		return nil, status.Error(codes.InvalidArgument, "password is required")
 	}
 
-	uid, err := s.userAuth.RegisterNewUser(ctx, in.GetEmail(), in.GetLogin(), in.GetPassword())
+	uid, err := s.userAuth.SaveUser(ctx, in.GetEmail(), in.GetLogin(), in.GetPassword())
 	if err != nil {
 		if errors.Is(err, postgres.ErrUserExists) {
 			return nil, status.Error(codes.AlreadyExists, "user already exists")

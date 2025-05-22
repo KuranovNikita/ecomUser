@@ -1,10 +1,13 @@
 package main
 
 import (
+	"ecomUser/internal/app"
 	"ecomUser/internal/config"
 	"ecomUser/internal/storage/postgres"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 const (
@@ -23,12 +26,20 @@ func main() {
 
 	storagePath := postgres.SplitStoragePath(cfg.LoginDB, cfg.PasswordDB, cfg.HostDB, cfg.PortDB, cfg.NameDB)
 
-	storage, err := postgres.New(storagePath)
-	if err != nil {
-		log.Error("Failed to connect to storage: %v", "err", err)
-	}
-	defer storage.Close()
+	application := app.New(log, cfg.GRPCPort, storagePath, cfg.GRPCTimeout)
 
+	go application.GRPCSrv.MustRun()
+
+	// Graceful shutdown
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+
+	signal := <-stop
+
+	log.Info("stopping app", slog.String("signal", signal.String()))
+
+	application.GRPCSrv.Stop()
+	log.Info("application stop")
 }
 
 func setupLogger(env string) *slog.Logger {

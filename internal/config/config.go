@@ -3,6 +3,8 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
+	"time"
 )
 
 type Config struct {
@@ -14,6 +16,8 @@ type Config struct {
 	PortDB      string
 	NameDB      string
 	JWTSecret   string
+	GRPCPort    int
+	GRPCTimeout time.Duration
 }
 
 func MustLoad() *Config {
@@ -54,7 +58,27 @@ func MustLoad() *Config {
 
 	jwtSercet := os.Getenv("JWT_SECRET")
 	if nameDB == "" {
-		log.Fatal("NAME_DB is not set")
+		log.Fatal("JWT_SECRET is not set")
+	}
+
+	grpcPortStr := os.Getenv("GRPC_PORT")
+	if grpcPortStr == "" {
+		log.Fatal("GRPC_PORT is not set")
+	}
+
+	grpcPort, err := strconv.Atoi(grpcPortStr)
+	if err != nil {
+		log.Fatalf("Invalid GRPC_PORT value: %v", err)
+	}
+
+	grpcTimeoutStr := os.Getenv("GRPC_TIMEOUT")
+	if grpcTimeoutStr == "" {
+		log.Fatal("GRPC_TIMEOUT is not set")
+	}
+
+	grpcTimeout, err := time.ParseDuration(grpcTimeoutStr)
+	if err != nil {
+		log.Fatalf("Invalid GRPC_TIMEOUT value: %v", err)
 	}
 
 	return &Config{
@@ -66,5 +90,7 @@ func MustLoad() *Config {
 		PortDB:      portDB,
 		NameDB:      nameDB,
 		JWTSecret:   jwtSercet,
+		GRPCPort:    grpcPort,
+		GRPCTimeout: grpcTimeout,
 	}
 }

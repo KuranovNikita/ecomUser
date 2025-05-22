@@ -65,10 +65,27 @@ func (s *Storage) SaveUser(ctx context.Context, email string, login string, pass
 	return id, nil
 }
 
-func (s *Storage) GetUser(ctx context.Context, login string) (models.User, error) {
+func (s *Storage) GetUser(ctx context.Context, id int64) (models.User, error) {
 	const op = "storage.GetUser"
 
-	stmt := `SELECT id, email, login, pass_hash FROM users WHERE email = $1`
+	stmt := `SELECT id, email, login, pass_hash FROM users WHERE id = $1`
+
+	var user models.User
+	err := s.db.QueryRowContext(ctx, stmt, id).Scan(&user.ID, &user.Email, &user.Login, &user.PassHash)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.User{}, fmt.Errorf("%s: %w (login: %s)", op, ErrUserNotFound, id)
+		}
+		return models.User{}, fmt.Errorf("%s: execute statement or scan: %w", op, err)
+	}
+
+	return user, nil
+}
+
+func (s *Storage) GetUserLogin(ctx context.Context, login string) (models.User, error) {
+	const op = "storage.GetUser"
+
+	stmt := `SELECT id, email, login, pass_hash FROM users WHERE login = $1`
 
 	var user models.User
 	err := s.db.QueryRowContext(ctx, stmt, login).Scan(&user.ID, &user.Email, &user.Login, &user.PassHash)

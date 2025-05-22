@@ -21,10 +21,11 @@ func New(log *slog.Logger, grpcPort int, storagePath string, tokenTTL time.Durat
 		panic(err)
 	}
 
+	defer storage.Close()
+
 	authService := user.New(log, storage, storage, tokenTTL) //*user.Auth
 
-	grpcApp := grpcapp.New(log, authService, grpcPort) // usergrpc.UserAuth
-
+	grpcApp := grpcapp.New(log, authService, grpcPort)
 	return &App{
 		GRPCSrv: grpcApp,
 	}

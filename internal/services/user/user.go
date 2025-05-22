@@ -31,8 +31,24 @@ type UserSaver interface {
 }
 
 type UserProvider interface {
-	GetUser(ctx context.Context, email string) (models.User, error)
+	GetUser(ctx context.Context, userID int64) (models.User, error)
+	GetUserLogin(ctx context.Context, login string) (models.User, error)
 }
+
+// type UserAuth interface {
+// 	Login(
+// 		ctx context.Context,
+// 		login string,
+// 		password string,
+// 	) (token string, err error)
+// 	RegisterNewUser(
+// 		ctx context.Context,
+// 		email string,
+// 		login string,
+// 		password string,
+// 	) (userID int64, err error)
+// 	GetUser(ctx context.Context, userID int64) (models.User, error)
+// }
 
 var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
@@ -47,17 +63,17 @@ func New(log *slog.Logger, userSaver UserSaver, userProvider UserProvider, token
 	}
 }
 
-func (a *Auth) Login(ctx context.Context, login string, password string) (string, error) {
+func (a *Auth) Login(ctx context.Context, userID int64, password string) (string, error) {
 	const op = "Auth.Login"
 
 	log := a.log.With(
 		slog.String("op", op),
-		slog.String("username", login),
+		// slog.AnyValue(userID),
 	)
 
 	log.Info("attempting to login user")
 
-	user, err := a.userProvider.GetUser(ctx, login)
+	user, err := a.userProvider.GetUser(ctx, userID)
 	if err != nil {
 		if errors.Is(err, postgres.ErrUserNotFound) {
 			a.log.Warn("user not found")
@@ -116,4 +132,48 @@ func (a *Auth) SaveUser(ctx context.Context, email string, login string, passwor
 	}
 
 	return id, nil
+}
+
+func (a *Auth) GetUser(ctx context.Context, userID int64) (models.User, error) {
+	const op = "Auth.GetUser"
+	log := a.log.With(
+		slog.String("op", op),
+		slog.Int64("userID", userID),
+	)
+	log.Info("attempting to get user by ID")
+
+	user, err := a.userProvider.GetUser(ctx, userID)
+	if err != nil {
+		if errors.Is(err, postgres.ErrUserNotFound) {
+			log.Warn("user not found by ID", "userID", userID)
+			return models.User{}, fmt.Errorf("%s: %w", op, postgres.ErrUserNotFound)
+		}
+		log.Error("failed to get user by ID", "error", err.Error())
+		return models.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	log.Info("user found by ID successfully", "userID", user.ID, "login", user.Login)
+	return user, nil
+}
+
+func (a *Auth) GetUserLogin(ctx context.Context, login string) (models.User, error) {
+	const op = "Auth.GetUser"
+	log := a.log.With(
+		slog.String("op", op),
+		slog.String("login", login),
+	)
+	log.Info("attempting to get user by ID")
+
+	user, err := a.userProvider.GetUserLogin(ctx, login)
+	if err != nil {
+		if errors.Is(err, postgres.ErrUserNotFound) {
+			log.Warn("user not found by ID", "userID", login)
+			return models.User{}, fmt.Errorf("%s: %w", op, postgres.ErrUserNotFound)
+		}
+		log.Error("failed to get user by ID", "error", err.Error())
+		return models.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	log.Info("user found by ID successfully", "userID", user.ID, "login", user.Login)
+	return user, nil
 }
