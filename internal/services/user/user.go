@@ -54,12 +54,13 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
-func New(log *slog.Logger, userSaver UserSaver, userProvider UserProvider, tokenTTL time.Duration) *Auth {
+func New(log *slog.Logger, userSaver UserSaver, userProvider UserProvider, tokenTTL time.Duration, secret string) *Auth {
 	return &Auth{
 		userSaver:    userSaver,
 		userProvider: userProvider,
 		tokenTTL:     tokenTTL,
 		log:          log,
+		secret:       secret,
 	}
 }
 
@@ -127,6 +128,8 @@ func (a *Auth) SaveUser(ctx context.Context, email string, login string, passwor
 
 	if err != nil {
 		log.Error("failed to save user")
+
+		log.Error(err.Error())
 
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}

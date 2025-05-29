@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -21,6 +23,9 @@ type Config struct {
 }
 
 func MustLoad() *Config {
+
+	godotenv.Load(".env")
+
 	env := os.Getenv("ENV")
 	if env == "" {
 		log.Fatal("ENV is not set")

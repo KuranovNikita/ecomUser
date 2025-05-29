@@ -33,7 +33,7 @@ func (s *serverAPI) Login(
 	in *user1.LoginRequest,
 ) (*user1.LoginResponse, error) {
 	if in.Login == "" {
-		return nil, status.Error(codes.InvalidArgument, "email is required")
+		return nil, status.Error(codes.InvalidArgument, "login is required")
 	}
 
 	if in.Password == "" {
@@ -61,6 +61,10 @@ func (s *serverAPI) Register(
 
 	if in.Password == "" {
 		return nil, status.Error(codes.InvalidArgument, "password is required")
+	}
+
+	if in.Login == "" {
+		return nil, status.Error(codes.InvalidArgument, "login is required")
 	}
 
 	uid, err := s.userAuth.SaveUser(ctx, in.GetEmail(), in.GetLogin(), in.GetPassword())

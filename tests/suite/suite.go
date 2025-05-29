@@ -3,11 +3,13 @@ package suite
 import (
 	"context"
 	"ecomUser/internal/config"
+	"fmt"
 	"net"
 	"strconv"
 	"testing"
 
 	user1 "github.com/KuranovNikita/ecomProto/gen/go/user"
+	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -26,7 +28,11 @@ func New(t *testing.T) (context.Context, *Suite) {
 	t.Helper()
 	t.Parallel()
 
+	godotenv.Load(".env")
+
+	fmt.Println("start suite")
 	cfg := config.MustLoad()
+	fmt.Println("end config suite")
 
 	grpcRequestTimeout := cfg.GRPCTimeout
 

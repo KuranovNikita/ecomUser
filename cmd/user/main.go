@@ -26,7 +26,15 @@ func main() {
 
 	storagePath := postgres.SplitStoragePath(cfg.LoginDB, cfg.PasswordDB, cfg.HostDB, cfg.PortDB, cfg.NameDB)
 
-	application := app.New(log, cfg.GRPCPort, storagePath, cfg.GRPCTimeout)
+	storage, err := postgres.New(storagePath)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer storage.Close()
+
+	application := app.New(log, cfg.GRPCPort, storagePath, cfg.GRPCTimeout, cfg.JWTSecret, storage)
 
 	go application.GRPCSrv.MustRun()
 
